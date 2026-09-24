@@ -755,8 +755,412 @@ app.get('/api/health', async (req: Request, res: Response) => {
   cachedHealthResult = result;
   lastHealthCheckTime = Date.now();
 
+  const wantsHtml =
+    req.headers.accept?.includes('text/html') &&
+    req.query.format !== 'json' &&
+    req.query.json !== 'true';
+
+  if (wantsHtml) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(renderHealthHtml(result));
+  }
+
   res.json(result);
 });
+
+function renderHealthHtml(data: any): string {
+  const isHealthy = data.status === 'healthy';
+  const statusColor = isHealthy ? '#10b981' : '#f59e0b';
+  const statusBg = isHealthy ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)';
+  const statusBorder = isHealthy ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)';
+  const statusText = isHealthy ? 'All Systems Operational' : 'Degraded (Resilient Fallbacks Active)';
+
+  const getBadge = (status: string) => {
+    if (status === 'operational' || status === 'healthy') {
+      return `<span style="background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase;">Operational</span>`;
+    }
+    return `<span style="background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase;">${status}</span>`;
+  };
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Health & System Status · Singapore Travel Assistant</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #0a0a0a;
+      color: #f3f4f6;
+      line-height: 1.5;
+      padding: 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 860px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #262626;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #10b981;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fafafa;
+      letter-spacing: -0.02em;
+    }
+    .brand p {
+      font-size: 12px;
+      color: #a3a3a3;
+    }
+    .actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      cursor: pointer;
+      border: 1px solid #333;
+    }
+    .btn-primary {
+      background: #10b981;
+      color: #000;
+      border-color: #10b981;
+    }
+    .btn-primary:hover {
+      background: #059669;
+    }
+    .btn-secondary {
+      background: #171717;
+      color: #d4d4d4;
+    }
+    .btn-secondary:hover {
+      background: #262626;
+      color: #fff;
+    }
+    .status-banner {
+      background: ${statusBg};
+      border: 1px solid ${statusBorder};
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .pulse-dot {
+      width: 14px;
+      height: 14px;
+      background: ${statusColor};
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px ${statusBg};
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 ${statusBorder}; }
+      70% { box-shadow: 0 0 0 8px rgba(0,0,0,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+    }
+    .status-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: ${statusColor};
+    }
+    .status-subtitle {
+      font-size: 12px;
+      color: #a3a3a3;
+      margin-top: 2px;
+    }
+    .metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .metric-card {
+      background: #141414;
+      border: 1px solid #262626;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .metric-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #737373;
+    }
+    .metric-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e5e5e5;
+      margin-top: 4px;
+      font-family: monospace;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #a3a3a3;
+      margin-bottom: 12px;
+    }
+    .services-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .service-card {
+      background: #141414;
+      border: 1px solid #262626;
+      border-radius: 14px;
+      padding: 18px 20px;
+      transition: border-color 0.15s ease;
+    }
+    .service-card:hover {
+      border-color: #383838;
+    }
+    .service-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .service-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #f5f5f5;
+    }
+    .service-desc {
+      font-size: 12px;
+      color: #737373;
+    }
+    .service-msg {
+      background: #0d0d0d;
+      border: 1px solid #212121;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #d4d4d4;
+      margin-top: 10px;
+      font-family: monospace;
+    }
+    .service-latency {
+      font-size: 12px;
+      color: #a3a3a3;
+      font-family: monospace;
+      margin-right: 10px;
+    }
+    .json-details {
+      background: #141414;
+      border: 1px solid #262626;
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 16px;
+    }
+    .json-pre {
+      background: #080808;
+      border: 1px solid #1f1f1f;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #34d399;
+      overflow-x: auto;
+      max-height: 320px;
+      margin-top: 10px;
+    }
+    summary {
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: #a3a3a3;
+    }
+    summary:hover {
+      color: #fff;
+    }
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #525252;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <h1>Singapore Travel Assistant · API Health</h1>
+          <p>Real-time status diagnostics for SLA OneMap, NEA Weather & Routing Services</p>
+        </div>
+      </div>
+      <div class="actions">
+        <a href="/api/health?fresh=true" class="btn btn-primary">↻ Run Fresh Probe</a>
+        <a href="/api/health?format=json" class="btn btn-secondary">Raw JSON</a>
+        <a href="/" class="btn btn-secondary">← Back to App</a>
+      </div>
+    </div>
+
+    <div class="status-banner">
+      <div class="status-left">
+        <div class="pulse-dot"></div>
+        <div>
+          <div class="status-title">${statusText}</div>
+          <div class="status-subtitle">${data.summary}</div>
+        </div>
+      </div>
+      <div>
+        ${getBadge(data.status)}
+      </div>
+    </div>
+
+    <div class="metrics-bar">
+      <div class="metric-card">
+        <div class="metric-label">Health State</div>
+        <div class="metric-value" style="color: ${statusColor}; text-transform: uppercase;">${data.status}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Server Uptime</div>
+        <div class="metric-value">${data.uptimeFormatted}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Memory RSS</div>
+        <div class="metric-value">${data.system.memoryRssMb} MB</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Node Environment</div>
+        <div class="metric-value">${data.environment}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Last Probed</div>
+        <div class="metric-value" style="font-size: 12px;">${new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</div>
+      </div>
+    </div>
+
+    <div class="section-title">Core Services Health Breakdown</div>
+
+    <div class="services-grid">
+      <!-- OneMap Search -->
+      <div class="service-card">
+        <div class="service-header">
+          <div>
+            <div class="service-name">OneMap Singapore Search API</div>
+            <div class="service-desc">Singapore Land Authority (SLA) Geocoding & Address Resolution</div>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span class="service-latency">${data.services.onemapSearch.latencyMs !== undefined ? data.services.onemapSearch.latencyMs + ' ms' : ''}</span>
+            ${getBadge(data.services.onemapSearch.status)}
+          </div>
+        </div>
+        <div class="service-msg">${data.services.onemapSearch.message || 'Operational'}</div>
+      </div>
+
+      <!-- NEA Weather -->
+      <div class="service-card">
+        <div class="service-header">
+          <div>
+            <div class="service-name">data.gov.sg 2-Hour Weather Forecast API</div>
+            <div class="service-desc">National Environment Agency (NEA) Real-Time Weather Zones</div>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span class="service-latency">${data.services.weatherApi.latencyMs !== undefined ? data.services.weatherApi.latencyMs + ' ms' : ''}</span>
+            ${getBadge(data.services.weatherApi.status)}
+          </div>
+        </div>
+        <div class="service-msg">${data.services.weatherApi.message || 'Operational'}</div>
+      </div>
+
+      <!-- Routing Engine -->
+      <div class="service-card">
+        <div class="service-header">
+          <div>
+            <div class="service-name">Multi-Tier Routing Engine</div>
+            <div class="service-desc">OneMap SLA + OSRM + Zero-Failure Road Network Synthesizer</div>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span class="service-latency">${data.services.routingEngine.latencyMs !== undefined ? data.services.routingEngine.latencyMs + ' ms' : ''}</span>
+            ${getBadge(data.services.routingEngine.status)}
+          </div>
+        </div>
+        <div class="service-msg">${data.services.routingEngine.message || 'Operational'}</div>
+      </div>
+
+      <!-- AI Assistant -->
+      <div class="service-card">
+        <div class="service-header">
+          <div>
+            <div class="service-name">Gemini Agentic AI Assistant</div>
+            <div class="service-desc">Gemini 2.5 Flash with Autonomous Tool Execution & Agentic Engine</div>
+          </div>
+          <div style="display: flex; align-items: center;">
+            ${getBadge(data.services.aiAssistant.status)}
+          </div>
+        </div>
+        <div class="service-msg">${data.services.aiAssistant.message || 'Operational'}</div>
+      </div>
+    </div>
+
+    <details class="json-details">
+      <summary>Inspect Raw JSON Output (/api/health?format=json)</summary>
+      <pre class="json-pre">${JSON.stringify(data, null, 2)}</pre>
+    </details>
+
+    <div class="footer">
+      Singapore Travel Assistant · High-Availability Diagnostics Engine · Node ${data.system.nodeVersion}
+    </div>
+  </div>
+</body>
+</html>`;
+}
 
 // 1. OneMap Search API: /api/onemap-search
 app.get('/api/onemap-search', async (req: Request, res: Response) => {
