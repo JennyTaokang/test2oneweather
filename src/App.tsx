@@ -5,8 +5,9 @@ import { DirectionsPanel } from './components/DirectionsPanel';
 import { WeatherCard } from './components/WeatherCard';
 import { AIAssistantPanel } from './components/AIAssistantPanel';
 import { LocationItem, RouteData, TravelMode, WeatherData, ChatMessage } from './types';
-import { MapPin, Navigation, Sparkles, CloudSun, Compass, ShieldCheck } from 'lucide-react';
+import { MapPin, Navigation, Sparkles, CloudSun, Compass, ShieldCheck, Activity } from 'lucide-react';
 import { generateClientSingaporeRoute } from './utils/polyline';
+import { APIHealthModal } from './components/APIHealthModal';
 
 // Raffles Place initial demo location
 const RAFFLES_PLACE: LocationItem = {
@@ -51,6 +52,7 @@ export default function App() {
     },
   ]);
   const [isAssistantLoading, setIsAssistantLoading] = useState(false);
+  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
 
   // 1. Initial 2-Hour Weather Fetch on Mount (for Raffles Place / City)
   const fetchWeather = async (lat?: number, lng?: number, area?: string) => {
@@ -301,15 +303,32 @@ export default function App() {
           />
         </div>
 
-        {/* Zone 3: Live Service Indicators */}
-        <div className="hidden lg:flex items-center gap-3 text-xs text-neutral-400 shrink-0">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-950 border border-neutral-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>OneMap Live</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-950 border border-neutral-800">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-            <span>data.gov.sg 2-Hr</span>
+        {/* Zone 3: Live Service Indicators & Interactive Health Modal Trigger */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => setIsHealthModalOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-xs transition-colors group cursor-pointer"
+            title="Inspect API health and diagnostic probes"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-neutral-300 group-hover:text-white font-medium flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden md:inline">API Health</span>
+            </span>
+          </button>
+
+          <div className="hidden xl:flex items-center gap-2 text-xs text-neutral-400">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-950 border border-neutral-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>OneMap</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-950 border border-neutral-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+              <span>data.gov.sg</span>
+            </div>
           </div>
         </div>
       </header>
@@ -443,6 +462,9 @@ export default function App() {
           />
         </aside>
       </main>
+
+      {/* API Health & Diagnostics Modal */}
+      <APIHealthModal isOpen={isHealthModalOpen} onClose={() => setIsHealthModalOpen(false)} />
     </div>
   );
 }
