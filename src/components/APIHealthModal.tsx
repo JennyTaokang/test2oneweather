@@ -15,42 +15,7 @@ import {
   Cpu,
   Clock,
 } from 'lucide-react';
-
-interface ServiceHealth {
-  status: 'operational' | 'degraded' | 'error' | 'fallback-active';
-  latencyMs?: number;
-  message?: string;
-  statusCode?: number;
-  resultsFound?: number;
-  areasTracked?: number;
-  validPeriod?: string;
-  provider?: string;
-  resilience?: string;
-  model?: string;
-  geminiConfigured?: boolean;
-}
-
-interface HealthData {
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  timestamp: string;
-  uptimeSeconds: number;
-  uptimeFormatted: string;
-  environment: string;
-  summary: string;
-  cached?: boolean;
-  cacheAgeMs?: number;
-  services: {
-    onemapSearch: ServiceHealth;
-    weatherApi: ServiceHealth;
-    routingEngine: ServiceHealth;
-    aiAssistant: ServiceHealth;
-  };
-  system: {
-    memoryRssMb: number;
-    memoryHeapUsedMb: number;
-    nodeVersion: string;
-  };
-}
+import { HealthResponseData, fetchApiHealth } from '../api/health';
 
 interface APIHealthModalProps {
   isOpen: boolean;
@@ -58,7 +23,7 @@ interface APIHealthModalProps {
 }
 
 export const APIHealthModal: React.FC<APIHealthModalProps> = ({ isOpen, onClose }) => {
-  const [data, setData] = useState<HealthData | null>(null);
+  const [data, setData] = useState<HealthResponseData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showJson, setShowJson] = useState(false);
@@ -67,11 +32,7 @@ export const APIHealthModal: React.FC<APIHealthModalProps> = ({ isOpen, onClose 
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/health${forceFresh ? '?fresh=true' : ''}`);
-      if (!res.ok) {
-        throw new Error(`Health check returned status ${res.status}`);
-      }
-      const json = await res.json();
+      const json = await fetchApiHealth(forceFresh);
       setData(json);
     } catch (err: any) {
       setError(err.message || 'Failed to query /api/health');
